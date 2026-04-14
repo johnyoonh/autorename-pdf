@@ -339,11 +339,43 @@ Ollama runs AI models entirely on your machine — no API key, no cloud, no cost
 
 The CLI works cross-platform via Python. The GUI and context menu are Windows-only.
 
+### Automated Setup (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/ptmrio/autorename-pdf.git
+cd autorename-pdf
+
+# Run the setup script
+chmod +x setup.sh
+./setup.sh
+```
+
+The `setup.sh` script will:
+- ✓ Check Python 3.11+ installation
+- ✓ Create a virtual environment
+- ✓ Install all dependencies
+- ✓ Create `config.yaml` from template
+- ✓ Optionally install PaddleOCR for offline OCR
+- ✓ Optionally create a shell alias for easy access
+
+After setup, edit `config.yaml` with your AI provider API key and run:
+
+```bash
+source venv/bin/activate
+python autorename-pdf.py --dry-run invoice.pdf
+python autorename-pdf.py invoice.pdf
+```
+
+### Manual Setup
+
+If you prefer manual installation:
+
 ```bash
 # Clone and set up
 git clone https://github.com/ptmrio/autorename-pdf.git
 cd autorename-pdf
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
@@ -357,8 +389,10 @@ python autorename-pdf.py invoice.pdf
 ```
 
 **Platform notes:**
-- PaddleOCR venv path defaults to `~/.local/share/autorename-pdf/paddleocr-venv`
-- Log files are written to `~/.local/share/autorename-pdf/`
+- **Requires:** Python 3.11 or later
+- **macOS:** PaddleOCR venv defaults to `~/Library/Application Support/autorename-pdf/paddleocr-venv`
+- **Linux:** PaddleOCR venv defaults to `~/.local/share/autorename-pdf/paddleocr-venv`
+- Log files are written to platform-specific application data directories
 - All core functionality (text extraction, AI processing, renaming) works cross-platform
 
 </details>
