@@ -225,6 +225,30 @@ autorename-pdf-cli.exe --vision --ocr "scanned_document.pdf"
 autorename-pdf-cli.exe rename --output json "C:\path\to\folder"
 ```
 
+### Downloads aging workflow
+
+On macOS or Linux, preview top-level files that have remained in Downloads for
+more than 30 days:
+
+```bash
+python autorename-pdf.py organize ~/Downloads
+```
+
+PDFs are renamed with the normal AI pipeline before classification. Other files
+use deterministic extension rules. The default destination is
+`~/Archives/Downloads`, organized by category and year. Unknown formats, failed
+PDF analysis, and destination collisions are routed to `Review`; hidden files,
+partial downloads, folders, and symlinks are ignored.
+
+Preview is the default. Apply a reviewed batch explicitly:
+
+```bash
+python autorename-pdf.py organize ~/Downloads --apply
+```
+
+Use `--skip-pdf-renaming` for an offline, extension-only run. Every preview and
+applied run appends JSON Lines records to `.organize-log.jsonl` in the archive.
+
 <details>
 <summary><strong>Full CLI Reference</strong></summary>
 

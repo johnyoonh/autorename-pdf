@@ -68,6 +68,20 @@ class TestBuildParser:
         args = parser.parse_args(["undo"])
         assert args.subcommand == "undo"
 
+    def test_organize_defaults_to_preview(self):
+        parser = build_parser()
+        args = parser.parse_args(["organize"])
+        assert args.subcommand == "organize"
+        assert args.older_than == 30
+        assert args.apply is False
+
+    def test_organize_apply_and_destination(self):
+        parser = build_parser()
+        args = parser.parse_args(["organize", "/tmp/inbox", "--destination", "/tmp/archive", "--apply"])
+        assert args.source == "/tmp/inbox"
+        assert args.destination == "/tmp/archive"
+        assert args.apply is True
+
     def test_undo_with_directory(self):
         parser = build_parser()
         args = parser.parse_args(["undo", "/some/dir"])
@@ -174,6 +188,9 @@ class TestPreprocessArgv:
     def test_undo_subcommand_unchanged(self):
         result = _preprocess_argv(["undo"])
         assert result == ["undo"]
+
+    def test_organize_subcommand_unchanged(self):
+        assert _preprocess_argv(["organize", "/tmp/inbox"]) == ["organize", "/tmp/inbox"]
 
     def test_empty_argv(self):
         result = _preprocess_argv([])

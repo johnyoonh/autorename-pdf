@@ -425,13 +425,15 @@ def process_pdf(
 # Argument parser with subcommands
 # ---------------------------------------------------------------------------
 
-_KNOWN_SUBCOMMANDS = {"rename", "undo", "config"}
+_KNOWN_SUBCOMMANDS = {"rename", "organize", "undo", "config"}
 
 EPILOG = """\
 examples:
   autorename-pdf invoice.pdf                Rename a single PDF
   autorename-pdf *.pdf --dry-run            Preview renames without changes
   autorename-pdf ./invoices -r              Recursively process a folder
+  autorename-pdf organize ~/Downloads       Preview organization of old files
+  autorename-pdf organize ~/Downloads --apply  Rename and move eligible files
   autorename-pdf -o json *.pdf              JSON output (for scripting)
   autorename-pdf undo                       Reverse last rename
   autorename-pdf config show                Show current config (keys redacted)
@@ -533,6 +535,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--ocr", action="store_true",
         help="Enable PaddleOCR (requires installation via setup.ps1)"
     )
+
+    organize_parser = subparsers.add_parser(
+        "organize",
+        parents=[_shared],
+        help="Rename and archive files aging out of Downloads",
+        description="Preview or apply organization of top-level files older than a threshold.",
+    )
+    organize_parser.add_argument("source", nargs="?", default=os.path.expanduser("~/Downloads"))
+    organize_parser.add_argument("--destination", default=os.path.expanduser("~/Archives/Downloads"))
+    organize_parser.add_argument("--older-than", type=int, default=30, metavar="DAYS")
+    organize_parser.add_argument("--apply", action="store_true", help="Apply changes (default is preview only)")
+    organize_parser.add_argument("--skip-pdf-renaming", action="store_true")
 
     # --- undo subcommand ---
     undo_parser = subparsers.add_parser(
@@ -952,6 +966,50 @@ def _handle_rename(args: argparse.Namespace, output_format: str) -> None:
     sys.exit(ExitCode.SUCCESS)
 
 
+def _handle_organize(args: argparse.Namespace, output_format: str) -> None:
+    """Preview or apply the Downloads aging workflow."""
+    from pathlib import Path
+    from _downloads_organizer import append_audit_log, organize_files
+
+    source = Path(args.source).expanduser().resolve()
+    destination = Path(args.destination).expanduser().resolve()
+    if not source.is_dir() or args.older_than < 1:
+        error_exit("usage_error", "Source must be a directory and --older-than must be positive.",
+                   exit_code=ExitCode.USAGE_ERROR, output_format=output_format)
+
+    pdf_renamer = None
+    if not args.skip_pdf_renaming:
+        base_dir = get_base_directory(getattr(args, "config_path", None))
+        config_path = getattr(args, "config_path", None) or os.path.join(base_dir, "config.yaml")
+        config = load_yaml_config(config_path)
+        yaml_path = os.path.join(base_dir, "harmonized-company-names.yaml")
+        if config:
+            def pdf_renamer(path: Path, apply: bool):
+                result = process_pdf(str(path), config, yaml_path, None, dry_run=not apply)
+                if result.status == "failed":
+                    return path, None, result.error
+                new_path = Path(result.new_path) if result.new_path else path
+                return new_path, result.doc_type, None
+
+    results = organize_files(source, destination, args.older_than, args.apply, pdf_renamer)
+    audit = destination / ".organize-log.jsonl"
+    append_audit_log(audit, results, args.apply)
+    payload = {"apply": args.apply, "source": str(source), "destination": str(destination),
+               "older_than_days": args.older_than, "total": len(results),
+               "moved": sum(r.status == "moved" for r in results),
+               "planned": sum(r.status == "planned" for r in results),
+               "review": sum(r.status == "review" or r.category == "Review" for r in results),
+               "files": [asdict(r) for r in results]}
+    if output_format == "json":
+        print(json.dumps(payload, indent=2, ensure_ascii=True))
+    else:
+        mode = "Applied" if args.apply else "Preview"
+        console.print(f"[bold]{mode}:[/bold] {len(results)} eligible file(s); "
+                      f"{payload['moved']} moved, {payload['planned']} planned, {payload['review']} review")
+        for result in results:
+            console.print(f"  {result.status:7} {result.source} -> {result.destination or 'Review'}")
+
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
@@ -985,6 +1043,8 @@ def main():
         _handle_undo(args, output_format)
     elif subcommand == "config":
         _handle_config(args, output_format)
+    elif subcommand == "organize":
+        _handle_organize(args, output_format)
     elif subcommand == "rename":
         _handle_rename(args, output_format)
     else:
