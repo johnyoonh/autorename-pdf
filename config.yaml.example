@@ -4,8 +4,8 @@
 # AI Provider Configuration
 ai:
   provider: "openai"              # openai, anthropic, gemini, xai, ollama
-  model: "gpt-5.4"               # Model name (provider-specific)
-  api_key: "your-api-key-here"   # Not needed for ollama
+  model: "${OPEN_SHARED_MODEL}"  # Set OPEN_SHARED_MODEL in the user environment
+  api_key: "${OPENAI_API_KEY}"   # Not needed for ollama
   base_url: ""                    # Custom base URL (optional, for proxies)
   temperature: 0.0                # 0.0 = deterministic
   max_retries: 2                  # Retry failed API calls
@@ -29,7 +29,7 @@ ai:
 # PDF Processing
 pdf:
   max_pages: 3                    # Max pages to process per PDF
-  ocr: false                      # false / true / "auto" — PaddleOCR for scanned PDFs
+  ocr: "auto"                     # false / true / "auto" — PaddleOCR for scanned PDFs
   vision: false                   # false / true / "auto" — send page images to LLM
   text_quality_threshold: 0.3     # Triggers OCR/vision when set to "auto"
   outgoing_invoice: "AR"          # Abbreviation for outgoing invoices (Accounts Receivable)
@@ -43,7 +43,7 @@ paddleocr:
                                    #   "de","fr","es",etc. = Latin model (all 59 Latin-script langs incl. English)
                                    #   "ch" = Chinese model (also handles Japanese and English)
                                    #   For European docs, use your country code -- it covers English too.
-  device: "auto"                  # "auto" (recommended), "cpu", or "gpu"
+  device: "cpu"                   # "auto", "cpu", or "gpu"
   # detection_model: ""           # Detection model (default: PP-OCRv5_mobile_det)
                                   #   Use "PP-OCRv5_server_det" for higher accuracy
                                   #   on complex layouts (uses more RAM)
