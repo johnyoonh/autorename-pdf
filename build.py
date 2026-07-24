@@ -289,6 +289,24 @@ def create_portable_zip():
     print(f"Portable ZIP: {zip_path} ({size_mb:.1f} MB)")
 
 
+def preserve_cli_release(exe_path):
+    """Preserve a standalone CLI distribution before build cleanup."""
+    step("Create CLI release")
+
+    RELEASES_DIR.mkdir(parents=True, exist_ok=True)
+    release_exe = RELEASES_DIR / OUTPUT_EXE
+    shutil.copy2(str(exe_path), str(release_exe))
+    print(f"  + {release_exe.name}")
+
+    for filename in BUNDLE_FILES:
+        shutil.copy2(str(ROOT / filename), str(RELEASES_DIR / filename))
+        print(f"  + {filename}")
+
+    size_mb = release_exe.stat().st_size / (1024 * 1024)
+    print(f"CLI release: {release_exe} ({size_mb:.1f} MB)")
+    return release_exe
+
+
 def cleanup():
     """Remove build artifacts (keep Releases/)."""
     step("Cleanup")
@@ -383,6 +401,8 @@ def main():
         gui_exe = build_tauri_gui(flags["nosign"])
         create_staging(cli_exe, gui_exe)
         create_portable_zip()
+    else:
+        preserve_cli_release(cli_exe)
 
     cleanup()
     print(f"\nBuild complete. Output in Releases/")

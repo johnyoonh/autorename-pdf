@@ -62,7 +62,7 @@ def test_preview_does_not_change_files(tmp_path):
     assert photo.exists()
     assert not destination.exists()
     assert results[0].status == "planned"
-    assert results[0].destination.endswith("Media/Images/2026/photo.jpg")
+    assert Path(results[0].destination) == destination / "Media" / "Images" / "2026" / "photo.jpg"
 
 
 def test_apply_moves_file_into_hierarchy(tmp_path):
@@ -96,7 +96,10 @@ def test_pdf_rename_and_document_classification(tmp_path):
 
     assert results[0].category == "Medical"
     assert results[0].renamed_to == "20250101 Clinic Laboratory Report.pdf"
-    assert results[0].destination.endswith("Documents/Medical/2026/20250101 Clinic Laboratory Report.pdf")
+    assert Path(results[0].destination) == (
+        destination / "Documents" / "Medical" / "2026"
+        / "20250101 Clinic Laboratory Report.pdf"
+    )
 
 
 def test_collision_is_sent_to_review_without_overwrite(tmp_path):
